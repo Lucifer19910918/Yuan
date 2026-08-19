@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -march=native CMakeFiles/debug_compare.dir/src/debug_compare.cpp.o -o debug_compare 

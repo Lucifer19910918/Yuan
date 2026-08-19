@@ -80,9 +80,25 @@ add_executable(topology_benchmark_scaling
 )
 target_include_directories(topology_benchmark_scaling PRIVATE include)
 
+# Enumerate all VALID radial operating modes for a 2-feeder network with
+# N sectionalizers per feeder and K tie-switches between feeders.
+# Compares traditional BFS/backtracking + union-find vs batched
+# 64-way bit-parallel (SWAR) AND-OR transitive closure (matrix method).
+add_executable(topology_operating_modes
+    src/topology_operating_modes.cpp
+)
+target_include_directories(topology_operating_modes PRIVATE include)
+
+# Small debug helper for the modes enumerator (brute force reference).
+add_executable(debug_modes
+    src/debug_modes.cpp
+)
+
 if(OpenMP_CXX_FOUND)
     target_link_libraries(power_flow PRIVATE OpenMP::OpenMP_CXX)
     message(STATUS "OpenMP: enabled")
 else()
     message(STATUS "OpenMP: not found, building serial fallback")
 endif()
+
+add_executable(debug_compare src/debug_compare.cpp)

@@ -68,6 +68,9 @@ all: CMakeFiles/test_eq2x2.dir/all
 all: CMakeFiles/benchmark_100x100.dir/all
 all: CMakeFiles/topology_matrix_trace.dir/all
 all: CMakeFiles/topology_benchmark_scaling.dir/all
+all: CMakeFiles/topology_operating_modes.dir/all
+all: CMakeFiles/debug_modes.dir/all
+all: CMakeFiles/debug_compare.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -80,6 +83,9 @@ clean: CMakeFiles/test_eq2x2.dir/clean
 clean: CMakeFiles/benchmark_100x100.dir/clean
 clean: CMakeFiles/topology_matrix_trace.dir/clean
 clean: CMakeFiles/topology_benchmark_scaling.dir/clean
+clean: CMakeFiles/topology_operating_modes.dir/clean
+clean: CMakeFiles/debug_modes.dir/clean
+clean: CMakeFiles/debug_compare.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -89,7 +95,7 @@ clean: CMakeFiles/topology_benchmark_scaling.dir/clean
 CMakeFiles/power_flow.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=5,6,7,8,9,10,11 "Built target power_flow"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=9,10,11,12,13,14,15 "Built target power_flow"
 .PHONY : CMakeFiles/power_flow.dir/all
 
 # Build rule for subdir invocation for target.
@@ -115,7 +121,7 @@ CMakeFiles/power_flow.dir/clean:
 CMakeFiles/test_eq2x2.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=12,13,14,15 "Built target test_eq2x2"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=16,17,18,19 "Built target test_eq2x2"
 .PHONY : CMakeFiles/test_eq2x2.dir/all
 
 # Build rule for subdir invocation for target.
@@ -167,7 +173,7 @@ CMakeFiles/benchmark_100x100.dir/clean:
 CMakeFiles/topology_matrix_trace.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=19,20,21 "Built target topology_matrix_trace"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=23,24,25 "Built target topology_matrix_trace"
 .PHONY : CMakeFiles/topology_matrix_trace.dir/all
 
 # Build rule for subdir invocation for target.
@@ -193,7 +199,7 @@ CMakeFiles/topology_matrix_trace.dir/clean:
 CMakeFiles/topology_benchmark_scaling.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_benchmark_scaling.dir/build.make CMakeFiles/topology_benchmark_scaling.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_benchmark_scaling.dir/build.make CMakeFiles/topology_benchmark_scaling.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=16,17,18 "Built target topology_benchmark_scaling"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=20,21,22 "Built target topology_benchmark_scaling"
 .PHONY : CMakeFiles/topology_benchmark_scaling.dir/all
 
 # Build rule for subdir invocation for target.
@@ -211,6 +217,84 @@ topology_benchmark_scaling: CMakeFiles/topology_benchmark_scaling.dir/rule
 CMakeFiles/topology_benchmark_scaling.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_benchmark_scaling.dir/build.make CMakeFiles/topology_benchmark_scaling.dir/clean
 .PHONY : CMakeFiles/topology_benchmark_scaling.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/topology_operating_modes.dir
+
+# All Build rule for target.
+CMakeFiles/topology_operating_modes.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=26,27 "Built target topology_operating_modes"
+.PHONY : CMakeFiles/topology_operating_modes.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/topology_operating_modes.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/topology_operating_modes.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 0
+.PHONY : CMakeFiles/topology_operating_modes.dir/rule
+
+# Convenience name for target.
+topology_operating_modes: CMakeFiles/topology_operating_modes.dir/rule
+.PHONY : topology_operating_modes
+
+# clean rule for target.
+CMakeFiles/topology_operating_modes.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/clean
+.PHONY : CMakeFiles/topology_operating_modes.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/debug_modes.dir
+
+# All Build rule for target.
+CMakeFiles/debug_modes.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=7,8 "Built target debug_modes"
+.PHONY : CMakeFiles/debug_modes.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/debug_modes.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/debug_modes.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 0
+.PHONY : CMakeFiles/debug_modes.dir/rule
+
+# Convenience name for target.
+debug_modes: CMakeFiles/debug_modes.dir/rule
+.PHONY : debug_modes
+
+# clean rule for target.
+CMakeFiles/debug_modes.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/clean
+.PHONY : CMakeFiles/debug_modes.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/debug_compare.dir
+
+# All Build rule for target.
+CMakeFiles/debug_compare.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=5,6 "Built target debug_compare"
+.PHONY : CMakeFiles/debug_compare.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/debug_compare.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/debug_compare.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 0
+.PHONY : CMakeFiles/debug_compare.dir/rule
+
+# Convenience name for target.
+debug_compare: CMakeFiles/debug_compare.dir/rule
+.PHONY : debug_compare
+
+# clean rule for target.
+CMakeFiles/debug_compare.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/clean
+.PHONY : CMakeFiles/debug_compare.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

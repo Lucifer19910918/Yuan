@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -march=native CMakeFiles/debug_modes.dir/src/debug_modes.cpp.o -o debug_modes 

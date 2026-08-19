@@ -3,5 +3,8 @@
 /workspace/power_flow/build/CMakeFiles/benchmark_100x100.dir
 /workspace/power_flow/build/CMakeFiles/topology_matrix_trace.dir
 /workspace/power_flow/build/CMakeFiles/topology_benchmark_scaling.dir
+/workspace/power_flow/build/CMakeFiles/topology_operating_modes.dir
+/workspace/power_flow/build/CMakeFiles/debug_modes.dir
+/workspace/power_flow/build/CMakeFiles/debug_compare.dir
 /workspace/power_flow/build/CMakeFiles/edit_cache.dir
 /workspace/power_flow/build/CMakeFiles/rebuild_cache.dir

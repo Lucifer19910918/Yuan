@@ -181,6 +181,45 @@ topology_benchmark_scaling/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_benchmark_scaling.dir/build.make CMakeFiles/topology_benchmark_scaling.dir/build
 .PHONY : topology_benchmark_scaling/fast
 
+#=============================================================================
+# Target rules for targets named topology_operating_modes
+
+# Build rule for target.
+topology_operating_modes: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 topology_operating_modes
+.PHONY : topology_operating_modes
+
+# fast build rule for target.
+topology_operating_modes/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/build
+.PHONY : topology_operating_modes/fast
+
+#=============================================================================
+# Target rules for targets named debug_modes
+
+# Build rule for target.
+debug_modes: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 debug_modes
+.PHONY : debug_modes
+
+# fast build rule for target.
+debug_modes/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/build
+.PHONY : debug_modes/fast
+
+#=============================================================================
+# Target rules for targets named debug_compare
+
+# Build rule for target.
+debug_compare: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 debug_compare
+.PHONY : debug_compare
+
+# fast build rule for target.
+debug_compare/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/build
+.PHONY : debug_compare/fast
+
 src/benchmark_100x100.o: src/benchmark_100x100.cpp.o
 .PHONY : src/benchmark_100x100.o
 
@@ -204,6 +243,54 @@ src/benchmark_100x100.s: src/benchmark_100x100.cpp.s
 src/benchmark_100x100.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/benchmark_100x100.cpp.s
 .PHONY : src/benchmark_100x100.cpp.s
+
+src/debug_compare.o: src/debug_compare.cpp.o
+.PHONY : src/debug_compare.o
+
+# target to build an object file
+src/debug_compare.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/src/debug_compare.cpp.o
+.PHONY : src/debug_compare.cpp.o
+
+src/debug_compare.i: src/debug_compare.cpp.i
+.PHONY : src/debug_compare.i
+
+# target to preprocess a source file
+src/debug_compare.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/src/debug_compare.cpp.i
+.PHONY : src/debug_compare.cpp.i
+
+src/debug_compare.s: src/debug_compare.cpp.s
+.PHONY : src/debug_compare.s
+
+# target to generate assembly for a file
+src/debug_compare.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_compare.dir/build.make CMakeFiles/debug_compare.dir/src/debug_compare.cpp.s
+.PHONY : src/debug_compare.cpp.s
+
+src/debug_modes.o: src/debug_modes.cpp.o
+.PHONY : src/debug_modes.o
+
+# target to build an object file
+src/debug_modes.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/src/debug_modes.cpp.o
+.PHONY : src/debug_modes.cpp.o
+
+src/debug_modes.i: src/debug_modes.cpp.i
+.PHONY : src/debug_modes.i
+
+# target to preprocess a source file
+src/debug_modes.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/src/debug_modes.cpp.i
+.PHONY : src/debug_modes.cpp.i
+
+src/debug_modes.s: src/debug_modes.cpp.s
+.PHONY : src/debug_modes.s
+
+# target to generate assembly for a file
+src/debug_modes.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_modes.dir/build.make CMakeFiles/debug_modes.dir/src/debug_modes.cpp.s
+.PHONY : src/debug_modes.cpp.s
 
 src/fast_decoupled.o: src/fast_decoupled.cpp.o
 .PHONY : src/fast_decoupled.o
@@ -439,6 +526,30 @@ src/topology_matrix_trace.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/topology_matrix_trace.cpp.s
 .PHONY : src/topology_matrix_trace.cpp.s
 
+src/topology_operating_modes.o: src/topology_operating_modes.cpp.o
+.PHONY : src/topology_operating_modes.o
+
+# target to build an object file
+src/topology_operating_modes.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/src/topology_operating_modes.cpp.o
+.PHONY : src/topology_operating_modes.cpp.o
+
+src/topology_operating_modes.i: src/topology_operating_modes.cpp.i
+.PHONY : src/topology_operating_modes.i
+
+# target to preprocess a source file
+src/topology_operating_modes.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/src/topology_operating_modes.cpp.i
+.PHONY : src/topology_operating_modes.cpp.i
+
+src/topology_operating_modes.s: src/topology_operating_modes.cpp.s
+.PHONY : src/topology_operating_modes.s
+
+# target to generate assembly for a file
+src/topology_operating_modes.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_operating_modes.dir/build.make CMakeFiles/topology_operating_modes.dir/src/topology_operating_modes.cpp.s
+.PHONY : src/topology_operating_modes.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -448,13 +559,22 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... benchmark_100x100"
+	@echo "... debug_compare"
+	@echo "... debug_modes"
 	@echo "... power_flow"
 	@echo "... test_eq2x2"
 	@echo "... topology_benchmark_scaling"
 	@echo "... topology_matrix_trace"
+	@echo "... topology_operating_modes"
 	@echo "... src/benchmark_100x100.o"
 	@echo "... src/benchmark_100x100.i"
 	@echo "... src/benchmark_100x100.s"
+	@echo "... src/debug_compare.o"
+	@echo "... src/debug_compare.i"
+	@echo "... src/debug_compare.s"
+	@echo "... src/debug_modes.o"
+	@echo "... src/debug_modes.i"
+	@echo "... src/debug_modes.s"
 	@echo "... src/fast_decoupled.o"
 	@echo "... src/fast_decoupled.i"
 	@echo "... src/fast_decoupled.s"
@@ -482,6 +602,9 @@ help:
 	@echo "... src/topology_matrix_trace.o"
 	@echo "... src/topology_matrix_trace.i"
 	@echo "... src/topology_matrix_trace.s"
+	@echo "... src/topology_operating_modes.o"
+	@echo "... src/topology_operating_modes.i"
+	@echo "... src/topology_operating_modes.s"
 .PHONY : help
 
 

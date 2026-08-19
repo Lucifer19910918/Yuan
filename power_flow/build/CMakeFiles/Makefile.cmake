@@ -61,4 +61,7 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/benchmark_100x100.dir/DependInfo.cmake"
   "CMakeFiles/topology_matrix_trace.dir/DependInfo.cmake"
   "CMakeFiles/topology_benchmark_scaling.dir/DependInfo.cmake"
+  "CMakeFiles/topology_operating_modes.dir/DependInfo.cmake"
+  "CMakeFiles/debug_modes.dir/DependInfo.cmake"
+  "CMakeFiles/debug_compare.dir/DependInfo.cmake"
   )
