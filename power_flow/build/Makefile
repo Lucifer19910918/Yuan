@@ -155,6 +155,19 @@ benchmark_100x100/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/build
 .PHONY : benchmark_100x100/fast
 
+#=============================================================================
+# Target rules for targets named topology_matrix_trace
+
+# Build rule for target.
+topology_matrix_trace: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 topology_matrix_trace
+.PHONY : topology_matrix_trace
+
+# fast build rule for target.
+topology_matrix_trace/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/build
+.PHONY : topology_matrix_trace/fast
+
 src/benchmark_100x100.o: src/benchmark_100x100.cpp.o
 .PHONY : src/benchmark_100x100.o
 
@@ -313,6 +326,7 @@ src/sparse_matrix.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/sparse_matrix.cpp.o
 .PHONY : src/sparse_matrix.cpp.o
 
 src/sparse_matrix.i: src/sparse_matrix.cpp.i
@@ -323,6 +337,7 @@ src/sparse_matrix.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/sparse_matrix.cpp.i
 .PHONY : src/sparse_matrix.cpp.i
 
 src/sparse_matrix.s: src/sparse_matrix.cpp.s
@@ -333,6 +348,7 @@ src/sparse_matrix.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/sparse_matrix.cpp.s
 .PHONY : src/sparse_matrix.cpp.s
 
 src/test_eq2x2.o: src/test_eq2x2.cpp.o
@@ -359,6 +375,30 @@ src/test_eq2x2.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/test_eq2x2.cpp.s
 .PHONY : src/test_eq2x2.cpp.s
 
+src/topology_matrix_trace.o: src/topology_matrix_trace.cpp.o
+.PHONY : src/topology_matrix_trace.o
+
+# target to build an object file
+src/topology_matrix_trace.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/topology_matrix_trace.cpp.o
+.PHONY : src/topology_matrix_trace.cpp.o
+
+src/topology_matrix_trace.i: src/topology_matrix_trace.cpp.i
+.PHONY : src/topology_matrix_trace.i
+
+# target to preprocess a source file
+src/topology_matrix_trace.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/topology_matrix_trace.cpp.i
+.PHONY : src/topology_matrix_trace.cpp.i
+
+src/topology_matrix_trace.s: src/topology_matrix_trace.cpp.s
+.PHONY : src/topology_matrix_trace.s
+
+# target to generate assembly for a file
+src/topology_matrix_trace.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/src/topology_matrix_trace.cpp.s
+.PHONY : src/topology_matrix_trace.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -370,6 +410,7 @@ help:
 	@echo "... benchmark_100x100"
 	@echo "... power_flow"
 	@echo "... test_eq2x2"
+	@echo "... topology_matrix_trace"
 	@echo "... src/benchmark_100x100.o"
 	@echo "... src/benchmark_100x100.i"
 	@echo "... src/benchmark_100x100.s"
@@ -394,6 +435,9 @@ help:
 	@echo "... src/test_eq2x2.o"
 	@echo "... src/test_eq2x2.i"
 	@echo "... src/test_eq2x2.s"
+	@echo "... src/topology_matrix_trace.o"
+	@echo "... src/topology_matrix_trace.i"
+	@echo "... src/topology_matrix_trace.s"
 .PHONY : help
 
 

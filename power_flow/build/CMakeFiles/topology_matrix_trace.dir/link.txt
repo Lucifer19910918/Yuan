@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -march=native CMakeFiles/topology_matrix_trace.dir/src/sparse_matrix.cpp.o CMakeFiles/topology_matrix_trace.dir/src/topology_matrix_trace.cpp.o -o topology_matrix_trace 

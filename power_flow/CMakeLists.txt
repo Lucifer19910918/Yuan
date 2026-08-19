@@ -63,6 +63,15 @@ else()
     message(STATUS "Eigen3: using system header path /usr/include/eigen3")
 endif()
 
+# Topology tracing via MATRIX operations (no DFS/BFS recursion).
+# Uses the project SparseMatrix for the adjacency CSR and SpMV frontier
+# expansion; correctness is cross-validated vs a DFS+BFS reference.
+add_executable(topology_matrix_trace
+    src/sparse_matrix.cpp
+    src/topology_matrix_trace.cpp
+)
+target_include_directories(topology_matrix_trace PRIVATE include)
+
 if(OpenMP_CXX_FOUND)
     target_link_libraries(power_flow PRIVATE OpenMP::OpenMP_CXX)
     message(STATUS "OpenMP: enabled")

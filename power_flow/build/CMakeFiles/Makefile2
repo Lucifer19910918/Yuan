@@ -66,6 +66,7 @@ CMAKE_BINARY_DIR = /workspace/power_flow/build
 all: CMakeFiles/power_flow.dir/all
 all: CMakeFiles/test_eq2x2.dir/all
 all: CMakeFiles/benchmark_100x100.dir/all
+all: CMakeFiles/topology_matrix_trace.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -76,6 +77,7 @@ preinstall:
 clean: CMakeFiles/power_flow.dir/clean
 clean: CMakeFiles/test_eq2x2.dir/clean
 clean: CMakeFiles/benchmark_100x100.dir/clean
+clean: CMakeFiles/topology_matrix_trace.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -155,6 +157,32 @@ benchmark_100x100: CMakeFiles/benchmark_100x100.dir/rule
 CMakeFiles/benchmark_100x100.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/clean
 .PHONY : CMakeFiles/benchmark_100x100.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/topology_matrix_trace.dir
+
+# All Build rule for target.
+CMakeFiles/topology_matrix_trace.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/workspace/power_flow/build/CMakeFiles --progress-num=16,17,18 "Built target topology_matrix_trace"
+.PHONY : CMakeFiles/topology_matrix_trace.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/topology_matrix_trace.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 3
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/topology_matrix_trace.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /workspace/power_flow/build/CMakeFiles 0
+.PHONY : CMakeFiles/topology_matrix_trace.dir/rule
+
+# Convenience name for target.
+topology_matrix_trace: CMakeFiles/topology_matrix_trace.dir/rule
+.PHONY : topology_matrix_trace
+
+# clean rule for target.
+CMakeFiles/topology_matrix_trace.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/topology_matrix_trace.dir/build.make CMakeFiles/topology_matrix_trace.dir/clean
+.PHONY : CMakeFiles/topology_matrix_trace.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

@@ -59,4 +59,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/power_flow.dir/DependInfo.cmake"
   "CMakeFiles/test_eq2x2.dir/DependInfo.cmake"
   "CMakeFiles/benchmark_100x100.dir/DependInfo.cmake"
+  "CMakeFiles/topology_matrix_trace.dir/DependInfo.cmake"
   )
