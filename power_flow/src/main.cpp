@@ -1,5 +1,6 @@
 #include "lu_decomposition.h"
 #include "newton_raphson.h"
+#include "fast_decoupled.h"
 #include "power_system.h"
 #include "sparse_matrix.h"
 #include "thread_pool.h"
@@ -308,6 +309,145 @@ static void benchmarkLarge(int N, int targetBranches, int reps) {
     verifySolution(sys, worstMismatch);
 }
 
+// FDLF benchmark: same network, same `reps` repeated solves, but using the
+// Fast Decoupled method whose B'/B'' are factorized ONCE in setup and only
+// triangular solves are performed per iteration. This is the path that makes
+// 10000 solves in <10s achievable.
+static void benchmarkFDLF(int N, int targetBranches, int reps) {
+    std::printf("\n=== FDLF Benchmark: %d buses, %d branches, %d repeated solves ===\n",
+                N, targetBranches, reps);
+    PowerSystem sys;
+    sys.baseMVA = 100.0;
+    sys.buses.resize(N);
+    std::mt19937 rng(20260819);
+    std::uniform_real_distribution<double> u01(0.0, 1.0);
+
+    const int nPV = std::max(1, N / 10);
+    for (int i = 0; i < N; ++i) {
+        auto& b = sys.buses[i];
+        b.id = i; b.index = i;
+        if (i == 0) {
+            b.type = BusType::SLACK; b.v_spec = 1.0; b.v = 1.0;
+        } else if (i <= nPV) {
+            b.type = BusType::PV; b.v_spec = 1.0 + 0.02 * (u01(rng) - 0.5);
+        } else {
+            b.type = BusType::PQ;
+            b.p_load = 1.0 + 4.0 * u01(rng);
+            b.q_load = 0.3 + 1.5 * u01(rng);
+        }
+    }
+    double totalLoad = 0.0;
+    for (const auto& b : sys.buses) totalLoad += b.p_load;
+    const double genPerPV = (totalLoad * 1.05) / std::max(1, nPV);
+    for (int i = 1; i <= nPV; ++i) sys.buses[i].p_gen = genPerPV;
+
+    auto addBr = [&](int f, int t, double r, double x) {
+        Branch b; b.from = f; b.to = t; b.r = r; b.x = x; b.b = 0.0;
+        b.tap = 1.0; b.phi = 0.0; sys.branches.push_back(b);
+    };
+    for (int i = 1; i < N; ++i) {
+        int parent = static_cast<int>(u01(rng) * i);
+        addBr(i, parent, 0.004 + 0.012 * u01(rng), 0.025 + 0.080 * u01(rng));
+    }
+    while (static_cast<int>(sys.branches.size()) < targetBranches) {
+        int a = 1 + static_cast<int>(u01(rng) * (N - 1));
+        int b = 1 + static_cast<int>(u01(rng) * (N - 1));
+        if (a == b) continue;
+        bool dup = false;
+        for (const auto& br : sys.branches) {
+            if ((br.from == a && br.to == b) || (br.from == b && br.to == a)) { dup = true; break; }
+        }
+        if (dup) continue;
+        addBr(a, b, 0.006 + 0.020 * u01(rng), 0.04 + 0.10 * u01(rng));
+    }
+
+    std::printf("buses=%zu  branches=%zu  PV=%d  PQ=%zu\n",
+                sys.buses.size(), sys.branches.size(), nPV,
+                sys.buses.size() - nPV - 1);
+
+    // One-time setup: build Y, B', B'', factorize them ONCE.
+    Timer setupT;
+    FastDecoupled fd(sys);
+    fd.setup();
+    double setupMs = setupT.elapsed_ms();
+
+#ifdef _OPENMP
+    std::printf("OpenMP threads: %d\n", omp_get_max_threads());
+#endif
+    std::printf("B'  factor nnz = %zu,  B'' factor nnz = %zu\n",
+                fd.factorBpNnz(), fd.factorBppNnz());
+    std::printf("setup (Y + B'/B'' assembly + factorization): %.2f ms (one-time)\n", setupMs);
+
+    FastDecoupled::Options opt;
+    opt.verbose = false;
+    opt.tol = 1e-7;
+    opt.maxIter = 100;
+
+    // Save base load for perturbation.
+    std::vector<double> baseP(sys.buses.size()), baseQ(sys.buses.size());
+    for (size_t i = 0; i < sys.buses.size(); ++i) {
+        baseP[i] = sys.buses[i].p_load;
+        baseQ[i] = sys.buses[i].q_load;
+    }
+
+    double sumTotal = 0, sumPower = 0, sumSolve = 0;
+    double minTotal = 1e18, maxTotal = 0;
+    double worstMismatch = 0.0;
+    int totalIters = 0, firstIters = -1;
+    bool allSameIter = true;
+
+    Timer wallT;
+    for (int r = 0; r < reps; ++r) {
+        // Small per-step load perturbation (time-series / probabilistic regime).
+        if (r > 0) {
+            for (size_t i = 0; i < sys.buses.size(); ++i) {
+                if (sys.buses[i].type == BusType::PQ) {
+                    double dp = 0.002 * std::sin(0.017 * (r + i));
+                    double dq = 0.002 * std::cos(0.017 * (r + i));
+                    sys.buses[i].p_load = baseP[i] * (1.0 + dp);
+                    sys.buses[i].q_load = baseQ[i] * (1.0 + dq);
+                }
+            }
+        }
+        // Warm start: reuse previous solution (r > 0 keeps sys.buses v/theta).
+        // singleSweep: do only one P+Q pass per solve in the warm-start regime.
+        // skipFinalPower: skip the post-loop power re-eval; verifySolution is
+        // independent of Pcalc()/Qcalc(), so this is pure savings.
+        FastDecoupled::Options o = opt;
+        o.flatStart = (r == 0);
+        o.singleSweep = (r > 0);
+        o.skipFinalPower = (r > 0);
+        auto res = fd.solve(o);
+        sumTotal  += res.totalTimeMs;
+        sumPower  += res.powerTimeMs;
+        sumSolve  += res.solveTimeMs;
+        minTotal = std::min(minTotal, res.totalTimeMs);
+        maxTotal = std::max(maxTotal, res.totalTimeMs);
+        totalIters += res.iterations;
+        if (firstIters < 0) firstIters = res.iterations;
+        else if (res.iterations != firstIters) allSameIter = false;
+        worstMismatch = std::max(worstMismatch, res.maxMismatch);
+        if ((r + 1) % 1000 == 0 && reps >= 1000) {
+            std::printf("  ... %d/%d solves done (avg %.3f ms/solve)\n",
+                        r + 1, reps, sumTotal / (r + 1));
+        }
+    }
+    double wallMs = wallT.elapsed_ms();
+
+    std::printf("\n[FDLF solve stats] %d repeated solves (wall=%.1f ms = %.2f s)\n",
+                reps, wallMs, wallMs / 1000.0);
+    std::printf("  total time   : %.2f ms  (avg %.4f ms/solve)\n", sumTotal, sumTotal / reps);
+    std::printf("  per-solve    : min=%.4f  max=%.4f  ms\n", minTotal, maxTotal);
+    std::printf("  power calc   : %.2f ms  (avg %.4f ms/solve)\n", sumPower, sumPower / reps);
+    std::printf("  tri-solve    : %.2f ms  (avg %.4f ms/solve)\n", sumSolve, sumSolve / reps);
+    std::printf("  iterations  : %d total (avg %.2f/solve, %s)\n",
+                totalIters, (double)totalIters / reps, allSameIter ? "all same" : "varied");
+    std::printf("  worst mismatch = %.3e\n", worstMismatch);
+
+    // Independent verification on the last solved state.
+    verifySolution(sys, worstMismatch);
+}
+
 // Independent verification using complex phasor circuit laws.
 // Reports max |P_independent - P_spec| and compares it to the solver's own
 // reported mismatch -- agreement at ~1e-12 proves the result is self-consistent.
@@ -420,17 +560,20 @@ int main(int argc, char** argv) {
     std::printf("[summary] SparseLU %s, small power flow %s\n",
                 okLU ? "PASS" : "FAIL", okPF ? "PASS" : "FAIL");
 
-    // User scenario: a FIXED 2000-bus / 6000-branch network, solved repeatedly
-    // 1 / 1000 / 10000 times (e.g. time-series power flow, N-1 screening,
-    // probabilistic power flow). One-time setup is done once per scale and
-    // reused across all solves in that scale.
+    // User scenario: a FIXED 2000-bus / 6000-branch network.
+    // NR is run once as the accuracy+speed baseline (it is too slow for 10000
+    // reps). FDLF is run for 1 / 1000 / 10000 reps to demonstrate the speedup
+    // from constant-matrix factorization.
     //
-    // CLI override: ./power_flow <buses> <branches> <reps>
+    // CLI override: ./power_flow <buses> <branches> <reps>  (runs NR + FDLF)
     struct Scale { int buses; int branches; int reps; const char* label; };
-    std::vector<Scale> scales = {
-        {2000, 6000,     1, "2000-bus/6000-branch, 1 solve"},
-        {2000, 6000,  1000, "2000-bus/6000-branch, 1000 solves"},
-        {2000, 6000, 10000, "2000-bus/6000-branch, 10000 solves"},
+    std::vector<Scale> nrScales = {
+        {2000, 6000, 1, "2000-bus/6000-branch, 1 solve (baseline)"},
+    };
+    std::vector<Scale> fdlfScales = {
+        {2000, 6000,     1, "1 solve"},
+        {2000, 6000,  1000, "1000 solves"},
+        {2000, 6000, 10000, "10000 solves"},
     };
     if (argc > 1) {
         int N = std::atoi(argv[1]);
@@ -439,14 +582,23 @@ int main(int argc, char** argv) {
         if (br < N - 1) br = N - 1;
         int reps = (argc > 3) ? std::atoi(argv[3]) : 1;
         if (reps < 1) reps = 1;
-        scales = {{N, br, reps, "custom"}};
+        // CLI mode: NR is run once as the accuracy/speed baseline (it is too
+        // slow for large reps), FDLF is run for the requested rep count.
+        nrScales = {{N, br, 1, "custom NR baseline (1 solve)"}};
+        fdlfScales = {{N, br, reps, "custom FDLF"}};
     }
 
-    for (const auto& s : scales) {
+    for (const auto& s : nrScales) {
         std::printf("\n############################################\n");
-        std::printf("## %s\n", s.label);
+        std::printf("## [Newton-Raphson] %s\n", s.label);
         std::printf("############################################\n");
         benchmarkLarge(s.buses, s.branches, s.reps);
+    }
+    for (const auto& s : fdlfScales) {
+        std::printf("\n############################################\n");
+        std::printf("## [FDLF] %s\n", s.label);
+        std::printf("############################################\n");
+        benchmarkFDLF(s.buses, s.branches, s.reps);
     }
     return (okLU && okPF) ? 0 : 1;
 }

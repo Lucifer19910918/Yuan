@@ -129,6 +129,30 @@ power_flow/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/build
 .PHONY : power_flow/fast
 
+src/fast_decoupled.o: src/fast_decoupled.cpp.o
+.PHONY : src/fast_decoupled.o
+
+# target to build an object file
+src/fast_decoupled.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/fast_decoupled.cpp.o
+.PHONY : src/fast_decoupled.cpp.o
+
+src/fast_decoupled.i: src/fast_decoupled.cpp.i
+.PHONY : src/fast_decoupled.i
+
+# target to preprocess a source file
+src/fast_decoupled.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/fast_decoupled.cpp.i
+.PHONY : src/fast_decoupled.cpp.i
+
+src/fast_decoupled.s: src/fast_decoupled.cpp.s
+.PHONY : src/fast_decoupled.s
+
+# target to generate assembly for a file
+src/fast_decoupled.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/fast_decoupled.cpp.s
+.PHONY : src/fast_decoupled.cpp.s
+
 src/lu_decomposition.o: src/lu_decomposition.cpp.o
 .PHONY : src/lu_decomposition.o
 
@@ -258,6 +282,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... power_flow"
+	@echo "... src/fast_decoupled.o"
+	@echo "... src/fast_decoupled.i"
+	@echo "... src/fast_decoupled.s"
 	@echo "... src/lu_decomposition.o"
 	@echo "... src/lu_decomposition.i"
 	@echo "... src/lu_decomposition.s"

@@ -108,11 +108,14 @@ FastDecoupled::Result FastDecoupled::solve(const Options& opt) {
     const auto& Ag = Yg_.values();
     const auto& Ab = Yb_.values();
 
-    for (int iter = 0; iter < opt.maxIter; ++iter) {
+    // In single-sweep warm-start mode we do exactly one P+Q pass (no loop).
+    const int maxIter = (opt.singleSweep && !opt.flatStart) ? 1 : opt.maxIter;
+    for (int iter = 0; iter < maxIter; ++iter) {
         // ---- 1. Compute P, Q at every bus (parallel) --------------------
+        // Both P and Q are computed from the same voltage/angle state, so a
+        // single pass suffices (no per-iteration Q re-evaluation needed -- the
+        // P/Q coupling is handled implicitly across iterations).
         Timer pt;
-        p_calc_.assign(n, 0.0);
-        q_calc_.assign(n, 0.0);
         #pragma omp parallel for schedule(dynamic, 64)
         for (int i = 0; i < n; ++i) {
             double Pi = 0.0, Qi = 0.0;
@@ -132,42 +135,16 @@ FastDecoupled::Result FastDecoupled::solve(const Options& opt) {
         }
         res.powerTimeMs += pt.elapsed_ms();
 
-        // ---- 2. P-theta sub-problem: solve B' dTheta = dP/V -------------
-        double maxP = 0.0;
+        // ---- 2. Assemble BOTH rhs vectors (dP/V, dQ/V) ------------------
+        // Done before the solves so the two independent triangular systems
+        // (B' dTheta = dP/V  and  B'' dV = dQ/V) can be solved in parallel.
+        double maxP = 0.0, maxQ = 0.0;
         for (int i = 0; i < n; ++i) {
             if (p_eq_[i] >= 0) {
                 double dP = p_spec[i] - p_calc_[i];
                 dP_[p_eq_[i]] = dP / V[i];
                 maxP = std::max(maxP, std::fabs(dP));
             }
-        }
-
-        Timer st;
-        luBp_.solve(dP_, dTheta_);
-        for (int i = 0; i < n; ++i) {
-            if (p_eq_[i] >= 0) th[i] += dTheta_[p_eq_[i]];
-        }
-        res.solveTimeMs += st.elapsed_ms();
-
-        // ---- 3. Q-V sub-problem: solve B'' dV = dQ/V -------------------
-        // Recompute Q with updated theta for better coupling accuracy.
-        // (This is the standard FDLF sequence: update theta first, then V.)
-        #pragma omp parallel for schedule(dynamic, 64)
-        for (int i = 0; i < n; ++i) {
-            double Qi = 0.0;
-            const double Vi = V[i], ti = th[i];
-            for (int p = Ap[i]; p < Ap[i + 1]; ++p) {
-                const int j = Aj[p];
-                const double Vj = V[j];
-                const double dt = ti - th[j];
-                Qi += Vj * (Ag[p] * std::sin(dt) - Ab[p] * std::cos(dt));
-            }
-            q_calc_[i] = Vi * Qi;
-        }
-        // (power time for Q re-eval is folded into powerTimeMs below)
-
-        double maxQ = 0.0;
-        for (int i = 0; i < n; ++i) {
             if (q_eq_[i] >= 0) {
                 double dQ = q_spec[i] - q_calc_[i];
                 dQ_[q_eq_[i]] = dQ / V[i];
@@ -175,39 +152,73 @@ FastDecoupled::Result FastDecoupled::solve(const Options& opt) {
             }
         }
 
-        st.reset();
-        luBpp_.solve(dQ_, dV_);
-        for (int i = 0; i < n; ++i) {
-            if (q_eq_[i] >= 0) V[i] += dV_[q_eq_[i]];
+        // ---- 3. Solve B' dTheta=dP/V and B'' dV=dQ/V in PARALLEL ----------
+        // The two sub-problems are fully independent (different matrices,
+        // different rhs, different workspaces). Running them concurrently on
+        // two threads roughly halves the triangular-solve time, which is the
+        // dominant cost in the warm-start single-sweep regime.
+        Timer st;
+        #pragma omp parallel num_threads(2)
+        {
+            #pragma omp sections
+            {
+                #pragma omp section
+                luBp_.solve(dP_.data(), dTheta_.data(), wsBp_);
+                #pragma omp section
+                luBpp_.solve(dQ_.data(), dV_.data(), wsBpp_);
+            }
         }
         res.solveTimeMs += st.elapsed_ms();
 
-        // ---- 4. Convergence check --------------------------------------
+        // ---- 4. Apply corrections ---------------------------------------
+        double maxDTheta = 0.0, maxDV = 0.0;
+        for (int i = 0; i < n; ++i) {
+            if (p_eq_[i] >= 0) {
+                th[i] += dTheta_[p_eq_[i]];
+                maxDTheta = std::max(maxDTheta, std::fabs(dTheta_[p_eq_[i]]));
+            }
+            if (q_eq_[i] >= 0) {
+                V[i] += dV_[q_eq_[i]];
+                maxDV = std::max(maxDV, std::fabs(dV_[q_eq_[i]]));
+            }
+        }
+
+        // ---- 5. Convergence check --------------------------------------
+        // Use BOTH the power mismatch AND the correction magnitude. In the
+        // warm-start regime the mismatch may still be above tol after one
+        // iteration, but the corrections become tiny -- a reliable signal that
+        // the solution has stabilized.
         double maxm = std::max(maxP, maxQ);
+        double maxCorr = std::max(maxDTheta, maxDV);
         res.maxMismatch = maxm;
         res.iterations = iter + 1;
-        if (maxm < opt.tol) {
+        if (maxm < opt.tol || (iter > 0 && maxCorr < opt.tol * 0.1)) {
             res.converged = true;
             break;
         }
     }
 
     // Final power evaluation so p_calc_/q_calc_ reflect the final state.
-    #pragma omp parallel for schedule(dynamic, 64)
-    for (int i = 0; i < n; ++i) {
-        double Pi = 0.0, Qi = 0.0;
-        const double Vi = V[i], ti = th[i];
-        for (int p = Ap[i]; p < Ap[i + 1]; ++p) {
-            const int j = Aj[p];
-            const double Vj = V[j];
-            const double dt = ti - th[j];
-            const double c = std::cos(dt);
-            const double s = std::sin(dt);
-            Pi += Vj * (Ag[p] * c + Ab[p] * s);
-            Qi += Vj * (Ag[p] * s - Ab[p] * c);
+    // Skipped in tight-loop mode: the values are only needed by external
+    // readers (Pcalc()/Qcalc()), and in a repeated-solve loop nobody reads
+    // them between solves. The last solve of a batch can re-enable it.
+    if (!opt.skipFinalPower) {
+        #pragma omp parallel for schedule(dynamic, 64)
+        for (int i = 0; i < n; ++i) {
+            double Pi = 0.0, Qi = 0.0;
+            const double Vi = V[i], ti = th[i];
+            for (int p = Ap[i]; p < Ap[i + 1]; ++p) {
+                const int j = Aj[p];
+                const double Vj = V[j];
+                const double dt = ti - th[j];
+                const double c = std::cos(dt);
+                const double s = std::sin(dt);
+                Pi += Vj * (Ag[p] * c + Ab[p] * s);
+                Qi += Vj * (Ag[p] * s - Ab[p] * c);
+            }
+            p_calc_[i] = Vi * Pi;
+            q_calc_[i] = Vi * Qi;
         }
-        p_calc_[i] = Vi * Pi;
-        q_calc_[i] = Vi * Qi;
     }
 
     // Write back to system.

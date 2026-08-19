@@ -32,6 +32,16 @@ public:
         double tol      = 1e-7;    // max |mismatch| in pu
         bool   flatStart = true;
         bool   verbose   = true;
+        // When true and flatStart==false (warm start), perform at most one
+        // P-theta + one Q-V sweep per solve. This trades a small amount of
+        // accuracy for a large speedup in repeated-solve workloads where each
+        // step is close to the previous solution.
+        bool   singleSweep = false;
+        // When true, skip the final power re-evaluation at the end of solve.
+        // The final pass only refreshes Pcalc()/Qcalc() for external readers;
+        // in a tight repeated-solve loop nobody reads them between solves, so
+        // skipping it saves one full O(nnz) power pass per solve.
+        bool   skipFinalPower = false;
     };
 
     struct Result {
@@ -72,6 +82,7 @@ private:
 
     SparseMatrix Bp_, Bpp_;     // constant coefficient matrices
     SparseLU luBp_, luBpp_;     // factorizations (done once in setup)
+    mutable SparseLU::WorkSpace wsBp_, wsBpp_;  // persistent solve workspace
 
     // Workspace.
     std::vector<double> p_calc_, q_calc_;

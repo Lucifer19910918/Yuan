@@ -29,6 +29,14 @@ public:
     void solve(const double* b, double* x) const;
     void solve(const std::vector<double>& b, std::vector<double>& x) const;
 
+    // Reentrant solve using caller-provided workspace (avoids per-call heap
+    // allocation of temporary vectors -- critical for repeated-solve hot paths).
+    struct WorkSpace {
+        std::vector<double> y, z, xp;
+        void resize(int n) { y.assign(n, 0.0); z.assign(n, 0.0); xp.assign(n, 0.0); }
+    };
+    void solve(const double* b, double* x, WorkSpace& ws) const;
+
     int    n()          const { return n_; }
     bool   analyzed()   const { return analyzed_; }
     bool   factorized() const { return factorized_; }

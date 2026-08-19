@@ -310,8 +310,10 @@ void SparseLU::solve(const double* b, double* x) const {
     std::vector<double> z(n_);
     for (int k = 0; k < n_; ++k) {
         double s = y[k];
+        const int* col = L_col_.data();
+        const double* val = L_val_.data();
         for (int lp = L_ptr_[k]; lp < L_ptr_[k + 1]; ++lp) {
-            s -= L_val_[lp] * z[L_col_[lp]];
+            s -= val[lp] * z[col[lp]];
         }
         z[k] = s;
     }
@@ -319,8 +321,10 @@ void SparseLU::solve(const double* b, double* x) const {
     std::vector<double> xp(n_);
     for (int k = n_ - 1; k >= 0; --k) {
         double s = z[k];
+        const int* col = U_col_.data();
+        const double* val = U_val_.data();
         for (int up = U_ptr_[k] + 1; up < U_ptr_[k + 1]; ++up) {
-            s -= U_val_[up] * xp[U_col_[up]];
+            s -= val[up] * xp[col[up]];
         }
         xp[k] = s / U_diag_[k];
     }
@@ -331,6 +335,49 @@ void SparseLU::solve(const double* b, double* x) const {
 void SparseLU::solve(const std::vector<double>& b, std::vector<double>& x) const {
     if (static_cast<int>(x.size()) != n_) x.resize(n_);
     solve(b.data(), x.data());
+}
+
+void SparseLU::solve(const double* b, double* x, WorkSpace& ws) const {
+    if (!factorized_) {
+        throw std::runtime_error("SparseLU::solve called before factorize");
+    }
+    if (static_cast<int>(ws.y.size()) != n_) ws.resize(n_);
+    double* y  = ws.y.data();
+    double* z  = ws.z.data();
+    double* xp = ws.xp.data();
+
+    // y = P b  (gather b via perm, sequential write to y).
+    const int* perm = perm_.data();
+    for (int i = 0; i < n_; ++i) y[i] = b[perm[i]];
+
+    // Forward substitution: L z = y (L unit diagonal).
+    const int* Lcol = L_col_.data();
+    const double* Lval = L_val_.data();
+    const int* Lptr = L_ptr_.data();
+    for (int k = 0; k < n_; ++k) {
+        double s = y[k];
+        for (int lp = Lptr[k]; lp < Lptr[k + 1]; ++lp) {
+            s -= Lval[lp] * z[Lcol[lp]];
+        }
+        z[k] = s;
+    }
+    // Back substitution: U xp = z.
+    const int* Ucol = U_col_.data();
+    const double* Uval = U_val_.data();
+    const int* Uptr = U_ptr_.data();
+    const double* Udiag = U_diag_.data();
+    for (int k = n_ - 1; k >= 0; --k) {
+        double s = z[k];
+        for (int up = Uptr[k] + 1; up < Uptr[k + 1]; ++up) {
+            s -= Uval[up] * xp[Ucol[up]];
+        }
+        xp[k] = s / Udiag[k];
+    }
+    // x = P^T xp  (gather xp via invperm, SEQUENTIAL write to x -- cache
+    // friendlier than scattering x[perm[i]] = xp[i] which writes x out of
+    // order and thrashes cache lines).
+    const int* invperm = invperm_.data();
+    for (int i = 0; i < n_; ++i) x[i] = xp[invperm[i]];
 }
 
 } // namespace powerflow
