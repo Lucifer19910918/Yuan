@@ -1,3 +1,4 @@
 /workspace/power_flow/build/CMakeFiles/power_flow.dir
+/workspace/power_flow/build/CMakeFiles/test_eq2x2.dir
 /workspace/power_flow/build/CMakeFiles/edit_cache.dir
 /workspace/power_flow/build/CMakeFiles/rebuild_cache.dir

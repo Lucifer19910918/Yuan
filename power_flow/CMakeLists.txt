@@ -34,6 +34,16 @@ target_include_directories(power_flow PRIVATE include)
 
 target_link_libraries(power_flow PRIVATE Threads::Threads)
 
+# Standalone demo: solve a textbook 2x2 linear equation with the SAME SparseLU
+# used by the power-flow solver. Exists to validate the general-equation
+# wrapper with a trivial case before running 2000-bus systems.
+add_executable(test_eq2x2
+    src/sparse_matrix.cpp
+    src/lu_decomposition.cpp
+    src/test_eq2x2.cpp
+)
+target_include_directories(test_eq2x2 PRIVATE include)
+
 if(OpenMP_CXX_FOUND)
     target_link_libraries(power_flow PRIVATE OpenMP::OpenMP_CXX)
     message(STATUS "OpenMP: enabled")

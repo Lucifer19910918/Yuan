@@ -129,6 +129,19 @@ power_flow/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/build
 .PHONY : power_flow/fast
 
+#=============================================================================
+# Target rules for targets named test_eq2x2
+
+# Build rule for target.
+test_eq2x2: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_eq2x2
+.PHONY : test_eq2x2
+
+# fast build rule for target.
+test_eq2x2/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/build
+.PHONY : test_eq2x2/fast
+
 src/fast_decoupled.o: src/fast_decoupled.cpp.o
 .PHONY : src/fast_decoupled.o
 
@@ -159,6 +172,7 @@ src/lu_decomposition.o: src/lu_decomposition.cpp.o
 # target to build an object file
 src/lu_decomposition.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/lu_decomposition.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.o
 .PHONY : src/lu_decomposition.cpp.o
 
 src/lu_decomposition.i: src/lu_decomposition.cpp.i
@@ -167,6 +181,7 @@ src/lu_decomposition.i: src/lu_decomposition.cpp.i
 # target to preprocess a source file
 src/lu_decomposition.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/lu_decomposition.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.i
 .PHONY : src/lu_decomposition.cpp.i
 
 src/lu_decomposition.s: src/lu_decomposition.cpp.s
@@ -175,6 +190,7 @@ src/lu_decomposition.s: src/lu_decomposition.cpp.s
 # target to generate assembly for a file
 src/lu_decomposition.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/lu_decomposition.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.s
 .PHONY : src/lu_decomposition.cpp.s
 
 src/main.o: src/main.cpp.o
@@ -255,6 +271,7 @@ src/sparse_matrix.o: src/sparse_matrix.cpp.o
 # target to build an object file
 src/sparse_matrix.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.o
 .PHONY : src/sparse_matrix.cpp.o
 
 src/sparse_matrix.i: src/sparse_matrix.cpp.i
@@ -263,6 +280,7 @@ src/sparse_matrix.i: src/sparse_matrix.cpp.i
 # target to preprocess a source file
 src/sparse_matrix.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.i
 .PHONY : src/sparse_matrix.cpp.i
 
 src/sparse_matrix.s: src/sparse_matrix.cpp.s
@@ -271,7 +289,32 @@ src/sparse_matrix.s: src/sparse_matrix.cpp.s
 # target to generate assembly for a file
 src/sparse_matrix.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.s
 .PHONY : src/sparse_matrix.cpp.s
+
+src/test_eq2x2.o: src/test_eq2x2.cpp.o
+.PHONY : src/test_eq2x2.o
+
+# target to build an object file
+src/test_eq2x2.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/test_eq2x2.cpp.o
+.PHONY : src/test_eq2x2.cpp.o
+
+src/test_eq2x2.i: src/test_eq2x2.cpp.i
+.PHONY : src/test_eq2x2.i
+
+# target to preprocess a source file
+src/test_eq2x2.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/test_eq2x2.cpp.i
+.PHONY : src/test_eq2x2.cpp.i
+
+src/test_eq2x2.s: src/test_eq2x2.cpp.s
+.PHONY : src/test_eq2x2.s
+
+# target to generate assembly for a file
+src/test_eq2x2.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/test_eq2x2.cpp.s
+.PHONY : src/test_eq2x2.cpp.s
 
 # Help Target
 help:
@@ -282,6 +325,7 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... power_flow"
+	@echo "... test_eq2x2"
 	@echo "... src/fast_decoupled.o"
 	@echo "... src/fast_decoupled.i"
 	@echo "... src/fast_decoupled.s"
@@ -300,6 +344,9 @@ help:
 	@echo "... src/sparse_matrix.o"
 	@echo "... src/sparse_matrix.i"
 	@echo "... src/sparse_matrix.s"
+	@echo "... src/test_eq2x2.o"
+	@echo "... src/test_eq2x2.i"
+	@echo "... src/test_eq2x2.s"
 .PHONY : help
 
 

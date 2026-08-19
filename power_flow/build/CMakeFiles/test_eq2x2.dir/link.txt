@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -march=native CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.o CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.o CMakeFiles/test_eq2x2.dir/src/test_eq2x2.cpp.o -o test_eq2x2 
