@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -march=native CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.o CMakeFiles/benchmark_100x100.dir/src/lu_decomposition.cpp.o CMakeFiles/benchmark_100x100.dir/src/benchmark_100x100.cpp.o -o benchmark_100x100 

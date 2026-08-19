@@ -44,6 +44,25 @@ add_executable(test_eq2x2
 )
 target_include_directories(test_eq2x2 PRIVATE include)
 
+# Benchmark: 100x100 pentadiagonal system -> 3-solver correctness+speed
+# comparison (our SparseLU vs hand-rolled dense LU vs Eigen::SparseLU).
+find_package(Eigen3 QUIET)
+add_executable(benchmark_100x100
+    src/sparse_matrix.cpp
+    src/lu_decomposition.cpp
+    src/benchmark_100x100.cpp
+)
+target_include_directories(benchmark_100x100 PRIVATE include)
+if(Eigen3_FOUND)
+    target_link_libraries(benchmark_100x100 PRIVATE Eigen3::Eigen)
+    message(STATUS "Eigen3: found, benchmark_100x100 will use Eigen::SparseLU")
+else()
+    # Fallback: the Eigen headers installed by apt are NOT exposed via
+    # Eigen3::Eigen CMake target, so we add the include dir manually.
+    target_include_directories(benchmark_100x100 PRIVATE /usr/include/eigen3)
+    message(STATUS "Eigen3: using system header path /usr/include/eigen3")
+endif()
+
 if(OpenMP_CXX_FOUND)
     target_link_libraries(power_flow PRIVATE OpenMP::OpenMP_CXX)
     message(STATUS "OpenMP: enabled")

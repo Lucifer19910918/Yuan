@@ -142,6 +142,43 @@ test_eq2x2/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/build
 .PHONY : test_eq2x2/fast
 
+#=============================================================================
+# Target rules for targets named benchmark_100x100
+
+# Build rule for target.
+benchmark_100x100: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 benchmark_100x100
+.PHONY : benchmark_100x100
+
+# fast build rule for target.
+benchmark_100x100/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/build
+.PHONY : benchmark_100x100/fast
+
+src/benchmark_100x100.o: src/benchmark_100x100.cpp.o
+.PHONY : src/benchmark_100x100.o
+
+# target to build an object file
+src/benchmark_100x100.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/benchmark_100x100.cpp.o
+.PHONY : src/benchmark_100x100.cpp.o
+
+src/benchmark_100x100.i: src/benchmark_100x100.cpp.i
+.PHONY : src/benchmark_100x100.i
+
+# target to preprocess a source file
+src/benchmark_100x100.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/benchmark_100x100.cpp.i
+.PHONY : src/benchmark_100x100.cpp.i
+
+src/benchmark_100x100.s: src/benchmark_100x100.cpp.s
+.PHONY : src/benchmark_100x100.s
+
+# target to generate assembly for a file
+src/benchmark_100x100.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/benchmark_100x100.cpp.s
+.PHONY : src/benchmark_100x100.cpp.s
+
 src/fast_decoupled.o: src/fast_decoupled.cpp.o
 .PHONY : src/fast_decoupled.o
 
@@ -173,6 +210,7 @@ src/lu_decomposition.o: src/lu_decomposition.cpp.o
 src/lu_decomposition.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/lu_decomposition.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/lu_decomposition.cpp.o
 .PHONY : src/lu_decomposition.cpp.o
 
 src/lu_decomposition.i: src/lu_decomposition.cpp.i
@@ -182,6 +220,7 @@ src/lu_decomposition.i: src/lu_decomposition.cpp.i
 src/lu_decomposition.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/lu_decomposition.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/lu_decomposition.cpp.i
 .PHONY : src/lu_decomposition.cpp.i
 
 src/lu_decomposition.s: src/lu_decomposition.cpp.s
@@ -191,6 +230,7 @@ src/lu_decomposition.s: src/lu_decomposition.cpp.s
 src/lu_decomposition.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/lu_decomposition.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/lu_decomposition.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/lu_decomposition.cpp.s
 .PHONY : src/lu_decomposition.cpp.s
 
 src/main.o: src/main.cpp.o
@@ -272,6 +312,7 @@ src/sparse_matrix.o: src/sparse_matrix.cpp.o
 src/sparse_matrix.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.o
 .PHONY : src/sparse_matrix.cpp.o
 
 src/sparse_matrix.i: src/sparse_matrix.cpp.i
@@ -281,6 +322,7 @@ src/sparse_matrix.i: src/sparse_matrix.cpp.i
 src/sparse_matrix.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.i
 .PHONY : src/sparse_matrix.cpp.i
 
 src/sparse_matrix.s: src/sparse_matrix.cpp.s
@@ -290,6 +332,7 @@ src/sparse_matrix.s: src/sparse_matrix.cpp.s
 src/sparse_matrix.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/power_flow.dir/build.make CMakeFiles/power_flow.dir/src/sparse_matrix.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_eq2x2.dir/build.make CMakeFiles/test_eq2x2.dir/src/sparse_matrix.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/benchmark_100x100.dir/build.make CMakeFiles/benchmark_100x100.dir/src/sparse_matrix.cpp.s
 .PHONY : src/sparse_matrix.cpp.s
 
 src/test_eq2x2.o: src/test_eq2x2.cpp.o
@@ -324,8 +367,12 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... benchmark_100x100"
 	@echo "... power_flow"
 	@echo "... test_eq2x2"
+	@echo "... src/benchmark_100x100.o"
+	@echo "... src/benchmark_100x100.i"
+	@echo "... src/benchmark_100x100.s"
 	@echo "... src/fast_decoupled.o"
 	@echo "... src/fast_decoupled.i"
 	@echo "... src/fast_decoupled.s"
