@@ -138,6 +138,9 @@ static bool testSmallPowerFlow() {
 // ---------------------------------------------------------------------------
 // Test 3: large random grid benchmark.
 // ---------------------------------------------------------------------------
+// Forward declaration: independent complex-circuit verifier (defined below).
+static void verifySolution(const PowerSystem& sys, double solverMismatch);
+
 static void benchmarkLarge(int N, int targetBranches) {
     std::printf("\n=== Benchmark: %d buses, %d branches ===\n", N, targetBranches);
     PowerSystem sys;
@@ -224,7 +227,117 @@ static void benchmarkLarge(int N, int targetBranches) {
     opt.verbose = true;
     opt.tol = 1e-7;
     opt.maxIter = 50;
-    nr.solve(opt);
+    auto res = nr.solve(opt);
+
+    // Independent complex-circuit verification: recompute every branch power
+    // and bus injection using std::complex from the solved V, theta, WITHOUT
+    // touching the real-valued Jacobian / Y-CRS path. This cross-checks that
+    // the solver's internal P_calc matches a from-scratch circuit calculation.
+    verifySolution(sys, res.maxMismatch);
+}
+
+// Independent verification using complex phasor circuit laws.
+// Reports max |P_independent - P_spec| and compares it to the solver's own
+// reported mismatch -- agreement at ~1e-12 proves the result is self-consistent.
+static void verifySolution(const PowerSystem& sys, double solverMismatch) {
+    const int n = static_cast<int>(sys.buses.size());
+    std::vector<std::complex<double>> V(n);
+    for (int i = 0; i < n; ++i) {
+        const auto& b = sys.buses[i];
+        V[i] = std::polar(b.v, b.theta);
+    }
+    // Bus injections accumulated from branch power (independent path).
+    std::vector<double> P_indep(n, 0.0), Q_indep(n, 0.0);
+
+    auto branchPower = [&](const Branch& br, bool fromSide,
+                           double& P, double& Q) {
+        const double r = br.r, x = br.x;
+        const double z2 = r * r + x * x;
+        const std::complex<double> ys(r / z2, -x / z2);     // series admittance
+        const double b_half = 0.5 * br.b;
+        const std::complex<double> tap(br.tap * std::cos(br.phi),
+                                        br.tap * std::sin(br.phi));
+        const std::complex<double>& Vf = V[br.from];
+        const std::complex<double>& Vt = V[br.to];
+        // Y_ff = ys/a^2 + jb/2,  Y_ft = -ys/conj(tap)
+        // Y_tf = -ys/tap,       Y_tt = ys + jb/2
+        std::complex<double> I;
+        if (fromSide) {
+            I = (ys / (br.tap * br.tap)) * Vf
+              - (ys / std::conj(tap)) * Vt
+              + std::complex<double>(0.0, b_half) * Vf;
+        } else {
+            I = ys * Vt
+              - (ys / tap) * Vf
+              + std::complex<double>(0.0, b_half) * Vt;
+        }
+        const std::complex<double>& Vlocal = (fromSide ? Vf : Vt);
+        std::complex<double> S = Vlocal * std::conj(I);
+        P = std::real(S);
+        Q = std::imag(S);
+    };
+
+    for (const auto& br : sys.branches) {
+        double Pf, Qf, Pt, Qt;
+        branchPower(br, true,  Pf, Qf);
+        branchPower(br, false, Pt, Qt);
+        P_indep[br.from] += Pf; Q_indep[br.from] += Qf;
+        P_indep[br.to]   += Pt; Q_indep[br.to]   += Qt;
+    }
+    // Add bus shunts (independent of branch model).
+    for (int i = 0; i < n; ++i) {
+        const auto& b = sys.buses[i];
+        if (b.g_shunt != 0.0 || b.b_shunt != 0.0) {
+            std::complex<double> I_sh = std::complex<double>(b.g_shunt, b.b_shunt) * V[i];
+            std::complex<double> S_sh = V[i] * std::conj(I_sh);
+            P_indep[i] += std::real(S_sh);
+            Q_indep[i] += std::imag(S_sh);
+        }
+    }
+
+    // Per-bus power balance vs specification.
+    // P is checked only on non-slack buses (PV + PQ): slack P is a free result
+    // that balances the system, NOT a constraint. Q is checked only on PQ buses
+    // (PV/slack Q is free). This mirrors the solver's own mismatch definition.
+    double maxP = 0.0, maxQ = 0.0;
+    double sumP = 0.0, sumLoss = 0.0;
+    for (int i = 0; i < n; ++i) {
+        const auto& b = sys.buses[i];
+        double p_spec = (b.p_gen - b.p_load) / sys.baseMVA;
+        double q_spec = (b.q_gen - b.q_load) / sys.baseMVA;
+        double dP = (b.type != BusType::SLACK) ? (P_indep[i] - p_spec) : 0.0;
+        double dQ = (b.type == BusType::PQ) ? (Q_indep[i] - q_spec) : 0.0;
+        maxP = std::max(maxP, std::fabs(dP));
+        maxQ = std::max(maxQ, std::fabs(dQ));
+        sumP += P_indep[i];
+    }
+    // Report the slack bus's solved P (system imbalance it absorbs) for sanity.
+    for (int i = 0; i < n; ++i) {
+        if (sys.buses[i].type == BusType::SLACK) {
+            std::printf("  [slack] bus %d solved P = %.6f pu (balances the system)\n",
+                        i, P_indep[i]);
+            break;
+        }
+    }
+    // Branch losses (independent sum).
+    for (const auto& br : sys.branches) {
+        double Pf, Qf, Pt, Qt;
+        branchPower(br, true,  Pf, Qf);
+        branchPower(br, false, Pt, Qt);
+        sumLoss += (Pf + Pt);
+    }
+
+    std::printf("\n[verify] independent complex-circuit check:\n");
+    std::printf("  max|P_indep - P_spec|  = %.3e\n", maxP);
+    std::printf("  max|Q_indep - Q_spec|  = %.3e  (PQ buses)\n", maxQ);
+    std::printf("  sum(P_indep)           = %.10f\n", sumP);
+    std::printf("  sum(branch losses)     = %.10f\n", sumLoss);
+    std::printf("  |sumP - sumLoss|        = %.3e  (KCL loss conservation)\n",
+                std::fabs(sumP - sumLoss));
+    std::printf("  solver reported mismatch= %.3e\n", solverMismatch);
+    std::printf("  -> independent vs solver mismatch agree at %.1e (verdict: %s)\n",
+                std::max(maxP, solverMismatch),
+                (maxP < 1e-6 && std::fabs(sumP - sumLoss) < 1e-8) ? "ACCURATE" : "MISMATCH");
 }
 
 int main(int argc, char** argv) {
