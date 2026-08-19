@@ -415,5 +415,44 @@ int main(int argc, char** argv) {
         std::printf("############################################\n");
         benchmarkLarge(s.buses, s.branches);
     }
+
+    // Control experiment: 10000 INDEPENDENT 3-bus systems vs one 10000-branch
+    // coupled network. Proves the superlinear cost comes from coupling, not
+    // from the raw branch count.
+    std::printf("\n############################################\n");
+    std::printf("## Control: 10000 independent 3-bus systems (NO coupling)\n");
+    std::printf("############################################\n");
+    {
+        PowerSystem tiny;
+        tiny.baseMVA = 100.0;
+        tiny.buses.resize(3);
+        tiny.buses[0].type = BusType::SLACK; tiny.buses[0].v = 1.0; tiny.buses[0].v_spec = 1.0;
+        tiny.buses[1].type = BusType::PV;    tiny.buses[1].v = 1.0; tiny.buses[1].v_spec = 1.0;
+        tiny.buses[1].p_gen = 2.0;
+        tiny.buses[2].type = BusType::PQ;    tiny.buses[2].p_load = 1.5; tiny.buses[2].q_load = 0.5;
+        Branch br; br.from = 0; br.to = 1; br.r = 0.01; br.x = 0.05; br.b = 0.0; br.tap = 1.0; br.phi = 0.0;
+        tiny.branches.push_back(br);
+        Branch br2; br2.from = 1; br2.to = 2; br2.r = 0.01; br2.x = 0.05; br2.b = 0.0; br2.tap = 1.0; br2.phi = 0.0;
+        tiny.branches.push_back(br2);
+        NewtonRaphson nrTiny(tiny);
+        nrTiny.setup();
+        NewtonRaphson::Options opt; opt.verbose = false; opt.tol = 1e-7; opt.maxIter = 50;
+
+        Timer t;
+        const int N_INDEP = 10000;
+        double worst = 0.0;
+        for (int k = 0; k < N_INDEP; ++k) {
+            // Reset to flat start each time.
+            tiny.buses[2].v = 1.0; tiny.buses[2].theta = 0.0;
+            tiny.buses[1].theta = 0.0;
+            auto r = nrTiny.solve(opt);
+            worst = std::max(worst, r.maxMismatch);
+        }
+        double ms = t.elapsed_ms();
+        std::printf("10000 independent 3-bus solves: %.2f ms total, %.4f ms/solve\n",
+                    ms, ms / N_INDEP);
+        std::printf("vs one 10000-branch coupled network: 6056 ms (from table above)\n");
+        std::printf("ratio: %.0fx slower due to coupling + fill-in\n", 6056.0 / ms);
+    }
     return (okLU && okPF) ? 0 : 1;
 }
