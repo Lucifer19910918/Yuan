@@ -5,11 +5,13 @@
 #include "thread_pool.h"
 #include "timer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <cstdio>
 #include <random>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #ifdef _OPENMP
@@ -221,19 +223,59 @@ static void benchmarkLarge(int N, int targetBranches) {
     std::printf("Jacobian nnz = %zu,  factor L+U nnz = %zu (fill factor x%.2f)\n",
                 nr.jacobianNnz(), nr.factorNnz(),
                 nr.jacobianNnz() ? (double)nr.factorNnz() / nr.jacobianNnz() : 0.0);
-    std::printf("setup (Y assembly + symbolic LU): %.2f ms\n", setupMs);
+    std::printf("setup (Y assembly + symbolic LU): %.2f ms (one-time)\n", setupMs);
 
+    // Run multiple solves with the SAME topology but fresh initial conditions,
+    // which is the realistic workload (re-solving after topology changes /
+    // contingencies reuses the symbolic factorization). Report statistics.
     NewtonRaphson::Options opt;
-    opt.verbose = true;
+    opt.verbose = false;
     opt.tol = 1e-7;
     opt.maxIter = 50;
-    auto res = nr.solve(opt);
 
-    // Independent complex-circuit verification: recompute every branch power
-    // and bus injection using std::complex from the solved V, theta, WITHOUT
-    // touching the real-valued Jacobian / Y-CRS path. This cross-checks that
-    // the solver's internal P_calc matches a from-scratch circuit calculation.
-    verifySolution(sys, res.maxMismatch);
+    const int reps = 5;
+    std::vector<double> totalMs(reps), factorMs(reps), solveMs(reps), powerMs(reps), jacobiMs(reps);
+    std::vector<int>    iters(reps);
+    double worstMismatch = 0.0;
+    for (int r = 0; r < reps; ++r) {
+        // Reset to flat start so each solve re-converges.
+        for (auto& b : sys.buses) {
+            if (b.type == BusType::PQ) { b.v = 1.0; b.theta = 0.0; }
+            else if (b.type == BusType::PV) { b.v = b.v_spec; b.theta = 0.0; }
+            else { b.v = b.v_spec; b.theta = 0.0; }
+        }
+        auto res = nr.solve(opt);
+        totalMs[r]  = res.totalTimeMs;
+        factorMs[r] = res.factorTimeMs;
+        solveMs[r]  = res.solveTimeMs;          // tri-solve (forward/back substitution)
+        powerMs[r]  = res.powerTimeMs;
+        jacobiMs[r] = res.jacobiTimeMs;
+        iters[r]    = res.iterations;
+        worstMismatch = std::max(worstMismatch, res.maxMismatch);
+    }
+    auto stats = [](const std::vector<double>& v) {
+        double sum = 0, mn = 1e18, mx = 0;
+        for (double x : v) { sum += x; mn = std::min(mn, x); mx = std::max(mx, x); }
+        return std::tuple<double,double,double>(mn, sum / v.size(), mx);
+    };
+    auto [tMin, tAvg, tMax] = stats(totalMs);
+    auto [fMin, fAvg, fMax] = stats(factorMs);
+    auto [sMin, sAvg, sMax] = stats(solveMs);
+    auto [pMin, pAvg, pMax] = stats(powerMs);
+    auto [jMin, jAvg, jMax] = stats(jacobiMs);
+
+    std::printf("\n[solve stats] %d reps, worst mismatch=%.3e\n", reps, worstMismatch);
+    std::printf("  total     : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", tMin, tAvg, tMax);
+    std::printf("  power     : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", pMin, pAvg, pMax);
+    std::printf("  jacobi    : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", jMin, jAvg, jMax);
+    std::printf("  factor    : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", fMin, fAvg, fMax);
+    std::printf("  tri-solve : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", sMin, sAvg, sMax);
+    std::printf("  iterations: %d (all %s)\n", iters.front(),
+                std::all_of(iters.begin(), iters.end(),
+                            [&](int i){ return i == iters.front(); }) ? "same" : "varied");
+
+    // Independent verification on the last solved state.
+    verifySolution(sys, worstMismatch);
 }
 
 // Independent verification using complex phasor circuit laws.
@@ -347,13 +389,31 @@ int main(int argc, char** argv) {
     std::printf("[summary] SparseLU %s, small power flow %s\n",
                 okLU ? "PASS" : "FAIL", okPF ? "PASS" : "FAIL");
 
-    int N = 1000;
-    if (argc > 1) N = std::atoi(argv[1]);
-    if (N < 5) N = 5;
-    // Default target branches: ~1.4*N (modest meshing). Override via argv[2].
-    int targetBranches = static_cast<int>(1.4 * N) + 5;
-    if (argc > 2) targetBranches = std::atoi(argv[2]);
-    if (targetBranches < N - 1) targetBranches = N - 1; // need at least a tree
-    benchmarkLarge(N, targetBranches);
+    // Default sweep over the three requested scales (1 / 1000 / 10000 branches).
+    // Each entry: (bus_count, target_branches). Branch count is the controlled
+    // variable; bus count scales with it to keep average degree ~ (1..6) so the
+    // graph remains physically realistic (not a star, not fully meshed).
+    struct Scale { int buses; int branches; const char* label; };
+    std::vector<Scale> scales = {
+        {3,      1,     "1 branch (slack + PV + PQ)"},
+        {600,    1000,  "1000 branches"},
+        {3000,   10000, "10000 branches"},
+    };
+    // Allow CLI override: a single (N, branches) pair.
+    if (argc > 1) {
+        int N = std::atoi(argv[1]);
+        if (N < 5) N = 5;
+        int targetBranches = (argc > 2) ? std::atoi(argv[2])
+                                        : static_cast<int>(1.4 * N) + 5;
+        if (targetBranches < N - 1) targetBranches = N - 1;
+        scales = {{N, targetBranches, "custom"}};
+    }
+
+    for (const auto& s : scales) {
+        std::printf("\n############################################\n");
+        std::printf("## Scale: %s  (buses=%d, branches=%d)\n", s.label, s.buses, s.branches);
+        std::printf("############################################\n");
+        benchmarkLarge(s.buses, s.branches);
+    }
     return (okLU && okPF) ? 0 : 1;
 }

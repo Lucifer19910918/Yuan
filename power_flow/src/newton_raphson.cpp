@@ -318,7 +318,7 @@ NewtonRaphson::Result NewtonRaphson::solve(const Options& opt) {
         sys_.buses[i].theta = th[i];
     }
 
-    const double totalMs = total.elapsed_ms();
+    res.totalTimeMs = total.elapsed_ms();
     (void)broke;
 
     if (opt.verbose) {
@@ -326,7 +326,7 @@ NewtonRaphson::Result NewtonRaphson::solve(const Options& opt) {
                     res.converged ? "CONVERGED" : "NOT CONVERGED",
                     res.iterations, res.maxMismatch);
         std::printf("  total=%.2f ms | power=%.2f | jacobi=%.2f | factor=%.2f | tri-solve=%.2f\n",
-                    totalMs, res.powerTimeMs, res.jacobiTimeMs,
+                    res.totalTimeMs, res.powerTimeMs, res.jacobiTimeMs,
                     res.factorTimeMs, res.solveTimeMs);
     }
     return res;

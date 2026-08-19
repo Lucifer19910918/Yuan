@@ -36,10 +36,11 @@ public:
         bool   converged   = false;
         int    iterations  = 0;
         double maxMismatch = 0.0;
-        double solveTimeMs = 0.0;
-        double factorTimeMs = 0.0;
-        double jacobiTimeMs = 0.0;
-        double powerTimeMs  = 0.0;
+        double solveTimeMs  = 0.0; // cumulative tri-solve time across iterations
+        double factorTimeMs = 0.0; // cumulative numeric factorization time
+        double jacobiTimeMs = 0.0; // cumulative Jacobian fill time
+        double powerTimeMs  = 0.0; // cumulative power/mismatch eval time
+        double totalTimeMs   = 0.0; // wall-clock for the whole solve() call
         std::string message;
     };
 
