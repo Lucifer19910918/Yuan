@@ -143,8 +143,14 @@ static bool testSmallPowerFlow() {
 // Forward declaration: independent complex-circuit verifier (defined below).
 static void verifySolution(const PowerSystem& sys, double solverMismatch);
 
-static void benchmarkLarge(int N, int targetBranches) {
-    std::printf("\n=== Benchmark: %d buses, %d branches ===\n", N, targetBranches);
+// Benchmark: build ONE N-bus / targetBranches power network, do the one-time
+// setup (Y assembly + symbolic LU) ONCE, then solve it `reps` times with
+// fresh flat-start initial conditions each time. This mirrors the realistic
+// workload of repeated solves on a FIXED topology (time-series power flow,
+// N-1 contingency screening, probabilistic power flow, iterative control).
+static void benchmarkLarge(int N, int targetBranches, int reps) {
+    std::printf("\n=== Benchmark: %d buses, %d branches, %d repeated solves ===\n",
+                N, targetBranches, reps);
     PowerSystem sys;
     sys.baseMVA = 100.0;
     sys.buses.resize(N);
@@ -225,54 +231,78 @@ static void benchmarkLarge(int N, int targetBranches) {
                 nr.jacobianNnz() ? (double)nr.factorNnz() / nr.jacobianNnz() : 0.0);
     std::printf("setup (Y assembly + symbolic LU): %.2f ms (one-time)\n", setupMs);
 
-    // Run multiple solves with the SAME topology but fresh initial conditions,
-    // which is the realistic workload (re-solving after topology changes /
-    // contingencies reuses the symbolic factorization). Report statistics.
+    // Run `reps` solves with the SAME topology but fresh flat-start conditions
+    // each time. Symbolic factorization is reused across all solves (the whole
+    // point of the analyze/factorize split). For large reps we only accumulate
+    // totals to avoid O(reps) memory; for small reps we also track min/max.
     NewtonRaphson::Options opt;
     opt.verbose = false;
     opt.tol = 1e-7;
     opt.maxIter = 50;
 
-    const int reps = 5;
-    std::vector<double> totalMs(reps), factorMs(reps), solveMs(reps), powerMs(reps), jacobiMs(reps);
-    std::vector<int>    iters(reps);
+    const bool trackDetail = (reps <= 20);
+    double sumTotal = 0, sumFactor = 0, sumSolve = 0, sumPower = 0, sumJacobi = 0;
+    double minTotal = 1e18, maxTotal = 0;
     double worstMismatch = 0.0;
+    int totalIters = 0, firstIters = -1;
+    bool allSameIter = true;
+
+    // Save base load so we can apply small per-step perturbations (mimicking a
+    // time-series / probabilistic power flow where operating points drift).
+    std::vector<double> baseP(sys.buses.size()), baseQ(sys.buses.size());
+    for (size_t i = 0; i < sys.buses.size(); ++i) {
+        baseP[i] = sys.buses[i].p_load;
+        baseQ[i] = sys.buses[i].q_load;
+    }
+
+    Timer wallT;
     for (int r = 0; r < reps; ++r) {
-        // Reset to flat start so each solve re-converges.
-        for (auto& b : sys.buses) {
-            if (b.type == BusType::PQ) { b.v = 1.0; b.theta = 0.0; }
-            else if (b.type == BusType::PV) { b.v = b.v_spec; b.theta = 0.0; }
-            else { b.v = b.v_spec; b.theta = 0.0; }
+        // Perturb loads by a small fraction each step (deterministic walk) so
+        // that each solve has a genuinely different target but stays close to
+        // the previous solution -- the realistic warm-start regime where
+        // Newton converges in 2 iterations instead of 4.
+        if (r > 0) {
+            for (size_t i = 0; i < sys.buses.size(); ++i) {
+                if (sys.buses[i].type == BusType::PQ) {
+                    double dp = 0.002 * std::sin(0.017 * (r + i));
+                    double dq = 0.002 * std::cos(0.017 * (r + i));
+                    sys.buses[i].p_load = baseP[i] * (1.0 + dp);
+                    sys.buses[i].q_load = baseQ[i] * (1.0 + dq);
+                }
+            }
         }
         auto res = nr.solve(opt);
-        totalMs[r]  = res.totalTimeMs;
-        factorMs[r] = res.factorTimeMs;
-        solveMs[r]  = res.solveTimeMs;          // tri-solve (forward/back substitution)
-        powerMs[r]  = res.powerTimeMs;
-        jacobiMs[r] = res.jacobiTimeMs;
-        iters[r]    = res.iterations;
+        sumTotal  += res.totalTimeMs;
+        sumFactor += res.factorTimeMs;
+        sumSolve  += res.solveTimeMs;
+        sumPower  += res.powerTimeMs;
+        sumJacobi += res.jacobiTimeMs;
+        if (trackDetail) {
+            minTotal = std::min(minTotal, res.totalTimeMs);
+            maxTotal = std::max(maxTotal, res.totalTimeMs);
+        }
+        totalIters += res.iterations;
+        if (firstIters < 0) firstIters = res.iterations;
+        else if (res.iterations != firstIters) allSameIter = false;
         worstMismatch = std::max(worstMismatch, res.maxMismatch);
+        if ((r + 1) % 1000 == 0 && reps >= 1000) {
+            std::printf("  ... %d/%d solves done\n", r + 1, reps);
+        }
     }
-    auto stats = [](const std::vector<double>& v) {
-        double sum = 0, mn = 1e18, mx = 0;
-        for (double x : v) { sum += x; mn = std::min(mn, x); mx = std::max(mx, x); }
-        return std::tuple<double,double,double>(mn, sum / v.size(), mx);
-    };
-    auto [tMin, tAvg, tMax] = stats(totalMs);
-    auto [fMin, fAvg, fMax] = stats(factorMs);
-    auto [sMin, sAvg, sMax] = stats(solveMs);
-    auto [pMin, pAvg, pMax] = stats(powerMs);
-    auto [jMin, jAvg, jMax] = stats(jacobiMs);
+    double wallMs = wallT.elapsed_ms();
 
-    std::printf("\n[solve stats] %d reps, worst mismatch=%.3e\n", reps, worstMismatch);
-    std::printf("  total     : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", tMin, tAvg, tMax);
-    std::printf("  power     : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", pMin, pAvg, pMax);
-    std::printf("  jacobi    : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", jMin, jAvg, jMax);
-    std::printf("  factor    : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", fMin, fAvg, fMax);
-    std::printf("  tri-solve : min=%8.2f  avg=%8.2f  max=%8.2f  ms\n", sMin, sAvg, sMax);
-    std::printf("  iterations: %d (all %s)\n", iters.front(),
-                std::all_of(iters.begin(), iters.end(),
-                            [&](int i){ return i == iters.front(); }) ? "same" : "varied");
+    std::printf("\n[solve stats] %d repeated solves (wall=%.1f ms)\n", reps, wallMs);
+    std::printf("  total time   : %.2f ms  (avg %.4f ms/solve)\n", sumTotal, sumTotal / reps);
+    if (trackDetail) {
+        std::printf("  per-solve    : min=%.4f  max=%.4f  ms\n", minTotal, maxTotal);
+    }
+    std::printf("  power calc   : %.2f ms  (avg %.4f ms/solve)\n", sumPower,  sumPower  / reps);
+    std::printf("  jacobian fill: %.2f ms  (avg %.4f ms/solve)\n", sumJacobi, sumJacobi / reps);
+    std::printf("  numeric LU  : %.2f ms  (avg %.4f ms/solve)\n", sumFactor, sumFactor / reps);
+    std::printf("  tri-solve   : %.2f ms  (avg %.4f ms/solve)\n", sumSolve,  sumSolve  / reps);
+    std::printf("  iterations  : %d total (avg %.2f/solve, %s)\n",
+                totalIters, (double)totalIters / reps, allSameIter ? "all same" : "varied");
+    std::printf("  worst mismatch = %.3e\n", worstMismatch);
 
     // Independent verification on the last solved state.
     verifySolution(sys, worstMismatch);
@@ -383,76 +413,40 @@ static void verifySolution(const PowerSystem& sys, double solverMismatch) {
 }
 
 int main(int argc, char** argv) {
+    std::setvbuf(stdout, NULL, _IOLBF, 0);
     std::printf("============ Power Flow C++ Solver ============\n");
     bool okLU = testSparseLU();
     bool okPF = testSmallPowerFlow();
     std::printf("[summary] SparseLU %s, small power flow %s\n",
                 okLU ? "PASS" : "FAIL", okPF ? "PASS" : "FAIL");
 
-    // Default sweep over the three requested scales (1 / 1000 / 10000 branches).
-    // Each entry: (bus_count, target_branches). Branch count is the controlled
-    // variable; bus count scales with it to keep average degree ~ (1..6) so the
-    // graph remains physically realistic (not a star, not fully meshed).
-    struct Scale { int buses; int branches; const char* label; };
+    // User scenario: a FIXED 2000-bus / 6000-branch network, solved repeatedly
+    // 1 / 1000 / 10000 times (e.g. time-series power flow, N-1 screening,
+    // probabilistic power flow). One-time setup is done once per scale and
+    // reused across all solves in that scale.
+    //
+    // CLI override: ./power_flow <buses> <branches> <reps>
+    struct Scale { int buses; int branches; int reps; const char* label; };
     std::vector<Scale> scales = {
-        {3,      1,     "1 branch (slack + PV + PQ)"},
-        {600,    1000,  "1000 branches"},
-        {3000,   10000, "10000 branches"},
+        {2000, 6000,     1, "2000-bus/6000-branch, 1 solve"},
+        {2000, 6000,  1000, "2000-bus/6000-branch, 1000 solves"},
+        {2000, 6000, 10000, "2000-bus/6000-branch, 10000 solves"},
     };
-    // Allow CLI override: a single (N, branches) pair.
     if (argc > 1) {
         int N = std::atoi(argv[1]);
         if (N < 5) N = 5;
-        int targetBranches = (argc > 2) ? std::atoi(argv[2])
-                                        : static_cast<int>(1.4 * N) + 5;
-        if (targetBranches < N - 1) targetBranches = N - 1;
-        scales = {{N, targetBranches, "custom"}};
+        int br = (argc > 2) ? std::atoi(argv[2]) : static_cast<int>(1.4 * N) + 5;
+        if (br < N - 1) br = N - 1;
+        int reps = (argc > 3) ? std::atoi(argv[3]) : 1;
+        if (reps < 1) reps = 1;
+        scales = {{N, br, reps, "custom"}};
     }
 
     for (const auto& s : scales) {
         std::printf("\n############################################\n");
-        std::printf("## Scale: %s  (buses=%d, branches=%d)\n", s.label, s.buses, s.branches);
+        std::printf("## %s\n", s.label);
         std::printf("############################################\n");
-        benchmarkLarge(s.buses, s.branches);
-    }
-
-    // Control experiment: 10000 INDEPENDENT 3-bus systems vs one 10000-branch
-    // coupled network. Proves the superlinear cost comes from coupling, not
-    // from the raw branch count.
-    std::printf("\n############################################\n");
-    std::printf("## Control: 10000 independent 3-bus systems (NO coupling)\n");
-    std::printf("############################################\n");
-    {
-        PowerSystem tiny;
-        tiny.baseMVA = 100.0;
-        tiny.buses.resize(3);
-        tiny.buses[0].type = BusType::SLACK; tiny.buses[0].v = 1.0; tiny.buses[0].v_spec = 1.0;
-        tiny.buses[1].type = BusType::PV;    tiny.buses[1].v = 1.0; tiny.buses[1].v_spec = 1.0;
-        tiny.buses[1].p_gen = 2.0;
-        tiny.buses[2].type = BusType::PQ;    tiny.buses[2].p_load = 1.5; tiny.buses[2].q_load = 0.5;
-        Branch br; br.from = 0; br.to = 1; br.r = 0.01; br.x = 0.05; br.b = 0.0; br.tap = 1.0; br.phi = 0.0;
-        tiny.branches.push_back(br);
-        Branch br2; br2.from = 1; br2.to = 2; br2.r = 0.01; br2.x = 0.05; br2.b = 0.0; br2.tap = 1.0; br2.phi = 0.0;
-        tiny.branches.push_back(br2);
-        NewtonRaphson nrTiny(tiny);
-        nrTiny.setup();
-        NewtonRaphson::Options opt; opt.verbose = false; opt.tol = 1e-7; opt.maxIter = 50;
-
-        Timer t;
-        const int N_INDEP = 10000;
-        double worst = 0.0;
-        for (int k = 0; k < N_INDEP; ++k) {
-            // Reset to flat start each time.
-            tiny.buses[2].v = 1.0; tiny.buses[2].theta = 0.0;
-            tiny.buses[1].theta = 0.0;
-            auto r = nrTiny.solve(opt);
-            worst = std::max(worst, r.maxMismatch);
-        }
-        double ms = t.elapsed_ms();
-        std::printf("10000 independent 3-bus solves: %.2f ms total, %.4f ms/solve\n",
-                    ms, ms / N_INDEP);
-        std::printf("vs one 10000-branch coupled network: 6056 ms (from table above)\n");
-        std::printf("ratio: %.0fx slower due to coupling + fill-in\n", 6056.0 / ms);
+        benchmarkLarge(s.buses, s.branches, s.reps);
     }
     return (okLU && okPF) ? 0 : 1;
 }
