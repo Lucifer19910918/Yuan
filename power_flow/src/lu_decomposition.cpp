@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
-#include <set>
 #include <stdexcept>
 #include <tuple>
 
@@ -11,52 +9,120 @@ namespace powerflow {
 
 namespace {
 
-// Classical minimum-degree ordering over the symmetric pattern of A
-// (A + A^T), using an explicit quotient-free graph update. Returns
-// perm[new] = old and invperm[old] = new.
+// Minimum-degree ordering over the symmetric pattern of A (A + A^T), using a
+// bucket-queue priority structure (O(1) amortized min-degree selection) and
+// vector-based adjacency with a marker array (avoids hash-set overhead).
+// Returns perm[new] = old and invperm[old] = new.
 void minimumDegreeOrdering(const SparseMatrix& A,
                            std::vector<int>& perm,
                            std::vector<int>& invperm) {
     const int n = static_cast<int>(A.rows());
-    std::vector<std::set<int>> adj(n);
+    if (n == 0) { perm.clear(); invperm.clear(); return; }
+
+    // Adjacency as vectors. Membership during fill-in is checked via a marker
+    // array tagged with the current outer index, so no per-edge hashing.
+    std::vector<std::vector<int>> adj(n);
     const auto& Ap = A.rowPtr();
     const auto& Aj = A.colIdx();
     for (int i = 0; i < n; ++i) {
         for (int p = Ap[i]; p < Ap[i + 1]; ++p) {
             int j = Aj[p];
             if (j != i) {
-                adj[i].insert(j);
-                adj[j].insert(i);
+                adj[i].push_back(j);
+                adj[j].push_back(i);
             }
         }
     }
+    // De-duplicate neighbors (symmetric input would otherwise add each edge
+    // twice). Sort + unique keeps adjacency compact and bucket state consistent.
+    int maxDeg = 0;
+    for (int i = 0; i < n; ++i) {
+        std::sort(adj[i].begin(), adj[i].end());
+        adj[i].erase(std::unique(adj[i].begin(), adj[i].end()), adj[i].end());
+        maxDeg = std::max(maxDeg, static_cast<int>(adj[i].size()));
+    }
+
+    std::vector<int> degree(n);
+    for (int i = 0; i < n; ++i) degree[i] = static_cast<int>(adj[i].size());
+
+    // Bucket queue: buckets[d] holds live nodes whose current degree is d.
+    std::vector<std::vector<int>> buckets(maxDeg + 1);
+    std::vector<int> bucketPos(n, -1);
+    auto place = [&](int v, int d) {
+        if (d >= static_cast<int>(buckets.size())) buckets.resize(d + 1);
+        bucketPos[v] = static_cast<int>(buckets[d].size());
+        buckets[d].push_back(v);
+    };
+    auto remove = [&](int v) {
+        int d = degree[v];
+        int pos = bucketPos[v];
+        auto& bucket = buckets[d];
+        int last = bucket.back();
+        bucket[pos] = last;
+        bucketPos[last] = pos;
+        bucket.pop_back();
+        bucketPos[v] = -1;
+    };
+    auto moveDeg = [&](int v, int newD) {
+        remove(v);
+        degree[v] = newD;
+        place(v, newD);
+    };
+    for (int i = 0; i < n; ++i) place(i, degree[i]);
+
+    // mark[w] == token  means w is currently adjacent to the node whose fill-in
+    // scan is in progress. token is a monotonically increasing global counter,
+    // so stale marks from previous scans never match -- no reset needed.
+    std::vector<int> fillMark(n, -1);
+    int token = 0;
 
     perm.assign(n, -1);
     invperm.assign(n, -1);
     std::vector<char> eliminated(n, 0);
+    int minDeg = 0;
 
     for (int step = 0; step < n; ++step) {
-        // Pick the live node of minimum current degree.
-        int best = -1;
-        size_t bestDeg = std::numeric_limits<size_t>::max();
-        for (int i = 0; i < n; ++i) {
-            if (!eliminated[i] && adj[i].size() < bestDeg) {
-                bestDeg = adj[i].size();
-                best = i;
-            }
-        }
-        if (best < 0) break;
+        while (minDeg < static_cast<int>(buckets.size()) && buckets[minDeg].empty()) ++minDeg;
+        if (minDeg >= static_cast<int>(buckets.size())) break;
+        int best = buckets[minDeg].back();
+        remove(best);
+        eliminated[best] = 1;
         perm[step] = best;
         invperm[best] = step;
-        eliminated[best] = 1;
 
-        std::vector<int> nbrs(adj[best].begin(), adj[best].end());
-        for (int a : nbrs) adj[a].erase(best);
-        // Form a clique among the neighbors (fill edges).
+        // Take a snapshot of best's neighbors (adj[best] will be cleared below).
+        std::vector<int> nbrs = adj[best];
+        // 1. Detach best from each neighbor's adjacency (swap-remove), drop degree.
+        for (int a : nbrs) {
+            auto& la = adj[a];
+            for (size_t i = 0; i < la.size(); ++i) {
+                if (la[i] == best) {
+                    la[i] = la.back();
+                    la.pop_back();
+                    break;
+                }
+            }
+            int nd = degree[a] - 1;
+            moveDeg(a, nd);
+            if (nd < minDeg) minDeg = nd;
+        }
+        // 2. Form a clique among the neighbors (fill edges), using fillMark to
+        //    avoid duplicates and existing edges.
         for (size_t a = 0; a < nbrs.size(); ++a) {
+            int u = nbrs[a];
+            // Tag u's current neighbors so we can test membership in O(1).
+            ++token;
+            for (int w : adj[u]) fillMark[w] = token;
             for (size_t b = a + 1; b < nbrs.size(); ++b) {
-                adj[nbrs[a]].insert(nbrs[b]);
-                adj[nbrs[b]].insert(nbrs[a]);
+                int v = nbrs[b];
+                if (fillMark[v] != token) {
+                    // New fill edge u-v.
+                    adj[u].push_back(v);
+                    adj[v].push_back(u);
+                    moveDeg(u, degree[u] + 1);
+                    moveDeg(v, degree[v] + 1);
+                    fillMark[v] = token; // now adjacent to u
+                }
             }
         }
         adj[best].clear();

@@ -138,8 +138,8 @@ static bool testSmallPowerFlow() {
 // ---------------------------------------------------------------------------
 // Test 3: large random grid benchmark.
 // ---------------------------------------------------------------------------
-static void benchmarkLarge(int N) {
-    std::printf("\n=== Benchmark: %d buses ===\n", N);
+static void benchmarkLarge(int N, int targetBranches) {
+    std::printf("\n=== Benchmark: %d buses, %d branches ===\n", N, targetBranches);
     PowerSystem sys;
     sys.baseMVA = 100.0;
     sys.buses.resize(N);
@@ -183,12 +183,21 @@ static void benchmarkLarge(int N) {
         double x = 0.025 + 0.080 * u01(rng);
         addBr(i, parent, r, x);
     }
-    // Extra meshing edges (rings) to exercise fill-in.
-    const int extra = N / 5;
-    for (int k = 0; k < extra; ++k) {
+    // Add extra ring edges until the requested branch count is reached.
+    // Avoid parallel duplicates with a per-node small set cap to keep the graph
+    // realistic (no multi-edges).
+    while (static_cast<int>(sys.branches.size()) < targetBranches) {
         int a = 1 + static_cast<int>(u01(rng) * (N - 1));
         int b = 1 + static_cast<int>(u01(rng) * (N - 1));
         if (a == b) continue;
+        // Reject obvious parallel duplicates (linear scan; extra count is modest).
+        bool dup = false;
+        for (const auto& br : sys.branches) {
+            if ((br.from == a && br.to == b) || (br.from == b && br.to == a)) {
+                dup = true; break;
+            }
+        }
+        if (dup) continue;
         double r = 0.006 + 0.020 * u01(rng);
         double x = 0.04 + 0.10 * u01(rng);
         addBr(a, b, r, x);
@@ -228,6 +237,10 @@ int main(int argc, char** argv) {
     int N = 1000;
     if (argc > 1) N = std::atoi(argv[1]);
     if (N < 5) N = 5;
-    benchmarkLarge(N);
+    // Default target branches: ~1.4*N (modest meshing). Override via argv[2].
+    int targetBranches = static_cast<int>(1.4 * N) + 5;
+    if (argc > 2) targetBranches = std::atoi(argv[2]);
+    if (targetBranches < N - 1) targetBranches = N - 1; // need at least a tree
+    benchmarkLarge(N, targetBranches);
     return (okLU && okPF) ? 0 : 1;
 }
