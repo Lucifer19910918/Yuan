@@ -26,6 +26,7 @@ add_executable(power_flow
     src/lu_decomposition.cpp
     src/power_system.cpp
     src/newton_raphson.cpp
+    src/fast_decoupled.cpp
     src/main.cpp
 )
 
