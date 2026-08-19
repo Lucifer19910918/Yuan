@@ -72,6 +72,14 @@ add_executable(topology_matrix_trace
 )
 target_include_directories(topology_matrix_trace PRIVATE include)
 
+# Topology scaling benchmark: BFS (queue) vs Matrix (SpMV waves) across
+# n = 10, 100, 1000, 10000, 20000, 50000, 100000 nodes.
+add_executable(topology_benchmark_scaling
+    src/sparse_matrix.cpp
+    src/topology_benchmark_scaling.cpp
+)
+target_include_directories(topology_benchmark_scaling PRIVATE include)
+
 if(OpenMP_CXX_FOUND)
     target_link_libraries(power_flow PRIVATE OpenMP::OpenMP_CXX)
     message(STATUS "OpenMP: enabled")
